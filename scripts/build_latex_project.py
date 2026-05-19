@@ -399,16 +399,29 @@ def choose_template(skill_dir: Path, requested: str | None) -> Path:
     mapping = {
         "article": "chinese_article.tex",
         "chinese_article": "chinese_article.tex",
-        "thesis": "thesis_section.tex",
-        "thesis_section": "thesis_section.tex",
-        "report": "research_report.tex",
-        "research_report": "research_report.tex",
+        "thesis": "seuthesis",
+        "seuthesis": "seuthesis",
+        "report": "cjc",
+        "cjc": "cjc",
     }
-    return templates / mapping.get(name, "chinese_article.tex")
+    target = mapping.get(name, "chinese_article.tex")
+    return templates / target
 
 
 def is_user_template(template_path: Path) -> bool:
     return template_path.name == "user_template.tex"
+
+
+def is_directory_template(template_path: Path) -> bool:
+    return template_path.is_dir()
+
+
+def is_seuthesis_template(template_path: Path) -> bool:
+    return template_path.is_dir() and template_path.name == "seuthesis"
+
+
+def is_cjc_template(template_path: Path) -> bool:
+    return template_path.is_dir() and template_path.name == "cjc"
 
 
 def template_placeholders(template: str) -> set[str]:
@@ -525,7 +538,277 @@ def zip_project(project_dir: Path) -> Path:
     return zip_path
 
 
+def build_seuthesis_project(input_path: Path, output_dir: Path, template_dir: Path) -> Path:
+    markdown = read_text(input_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    metadata = parse_metadata(markdown)
+    converted = convert_markdown(markdown)
+    references_raw = converted.pop("REFERENCES_RAW")
+
+    # Copy template directory structure
+    shutil.copytree(template_dir, output_dir, dirs_exist_ok=True)
+
+    # Write body content into chapter1.tex
+    body = converted.get("BODY", "此处为根据用户输入整理生成的正文内容。")
+    tables = converted.get("TABLES", "")
+    figures = converted.get("FIGURES", "")
+    equations = converted.get("EQUATIONS", "")
+    content_parts = [part for part in [body, tables, figures, equations] if part]
+    content = "\n\n".join(content_parts)
+
+    chapter1_path = output_dir / "chapters" / "chapter1.tex"
+    chapter1_content = (
+        r"\chapter{" + metadata.get("TITLE", "第一章") + "}" + "\n\n"
+        + content + "\n"
+    )
+    chapter1_path.write_text(chapter1_content, encoding="utf-8")
+
+    # Update abstract if provided
+    abstract = metadata.get("ABSTRACT", "")
+    if abstract and abstract != "本文根据用户提供的文本自动整理生成。":
+        abstract_path = output_dir / "chapters" / "abstract.tex"
+        abstract_text = abstract_path.read_text(encoding="utf-8")
+        # Replace placeholder abstract content
+        abstract_text = re.sub(
+            r"\\begin\{abstract\}.*?\\end\{abstract\}",
+            r"\\begin{abstract}\n" + abstract + r"\n\\end{abstract}",
+            abstract_text,
+            count=1,
+            flags=re.S,
+        )
+        abstract_path.write_text(abstract_text, encoding="utf-8")
+
+    # Update title in main.tex if provided
+    title = metadata.get("TITLE", "")
+    if title and title != "中文学术文档":
+        main_tex_path = output_dir / "main.tex"
+        main_tex = main_tex_path.read_text(encoding="utf-8")
+        main_tex = re.sub(
+            r"\\title\n\s*\{[^}]*\}",
+            r"\\title\n    {" + escape_text_preserving_math(title) + "}",
+            main_tex,
+            count=1,
+        )
+        main_tex_path.write_text(main_tex, encoding="utf-8")
+
+    # Generate references.bib if we have structured references
+    _, bib = make_references(references_raw)
+    if bib:
+        (output_dir / "reference.bib").write_text(bib, encoding="utf-8")
+
+    write_readme(output_dir, engine_note="This project uses the SEUThesis (东南大学硕士论文) template.")
+    zip_project(output_dir)
+    return output_dir
+
+
+def build_cjc_project(input_path: Path, output_dir: Path, template_dir: Path) -> Path:
+    markdown = read_text(input_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "figures").mkdir(exist_ok=True)
+
+    metadata = parse_metadata(markdown)
+    converted = convert_markdown(markdown)
+    references_raw = converted.pop("REFERENCES_RAW")
+
+    # Copy template supporting files
+    for item in template_dir.iterdir():
+        if item.name == "CjC_template_tex.tex":
+            continue
+        target = output_dir / item.name
+        if item.is_dir():
+            if target.exists():
+                shutil.rmtree(target)
+            shutil.copytree(item, target)
+        else:
+            shutil.copy2(item, target)
+
+    # Build main.tex from CjC template structure
+    body = converted.get("BODY", "此处为根据用户输入整理生成的正文内容。")
+    tables = converted.get("TABLES", "")
+    figures = converted.get("FIGURES", "")
+    equations = converted.get("EQUATIONS", "")
+    content_parts = [part for part in [body, tables, figures, equations] if part]
+    content = "\n\n".join(content_parts)
+
+    refs_tex, bib = make_references(references_raw)
+    if not refs_tex:
+        refs_tex = r"""\begin{thebibliography}{99}
+\zihao{5-} \addtolength{\itemsep}{-1em}
+\vspace {1.5mm}
+\bibitem[1]{1} 参考文献信息待补充。
+\end{thebibliography}"""
+
+    title = escape_text_preserving_math(metadata.get("TITLE", "论文标题"))
+    author = escape_text_preserving_math(metadata.get("AUTHOR", "作者姓名"))
+    abstract_text = escape_text_preserving_math(metadata.get("ABSTRACT", "摘要内容"))
+    keywords = escape_text_preserving_math(metadata.get("KEYWORDS", "关键词"))
+
+    main_tex = r"""\documentclass[10.5pt,compsoc]{CjC}
+\usepackage{xeCJK}
+\setCJKmainfont{SimSun}[AutoFakeBold=2.5]
+\setCJKsansfont{SimHei}[AutoFakeBold=2.5]
+\setCJKmonofont{FangSong}
+\setCJKfamilyfont{zhkai}{KaiTi}
+\newcommand{\kai}{\CJKfamily{zhkai}}
+
+\usepackage{graphicx}
+\usepackage{footmisc}
+\usepackage{subfigure}
+\usepackage{url}
+\usepackage{multirow}
+\usepackage[noadjust]{cite}
+\usepackage{amsmath,amsthm}
+\usepackage{amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{color}
+\usepackage{ccaption}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\usepackage{xcolor,stfloats}
+\usepackage{comment}
+\usepackage{cuted}
+\usepackage{captionhack}
+\usepackage{epstopdf}
+
+\setcounter{page}{1}
+\graphicspath{{figures/}}
+
+\headevenname{\mbox{\quad} \hfill  \mbox{\zihao{-5}{计\quad \quad 算\quad \quad 机\quad \quad 学\quad \quad 报}} \hspace {50mm} \mbox{2026 年}}%
+\headoddname{? 期 \hfill """ + author + r"""：""" + title + r"""}%
+
+\renewcommand{\thefootnote}{\arabic{footnote}}
+\setcounter{footnote}{0}
+\renewcommand\footnotelayout{\zihao{5-}}
+
+\newtheoremstyle{mystyle}{0pt}{0pt}{\normalfont}{1em}{\bf}{}{1em}{}
+\theoremstyle{mystyle}
+\renewcommand\figurename{figure~}
+\renewcommand{\thesubfigure}{(\alph{subfigure})}
+\newcommand{\upcite}[1]{\textsuperscript{\cite{#1}}}
+\renewcommand{\labelenumi}{(\arabic{enumi})}
+\newcommand{\tabincell}[2]{\begin{tabular}{@{}#1@{}}#2\end{tabular}}
+\newcommand{\abc}{\color{white}\vrule width 2pt}
+\makeatletter
+\renewcommand{\@biblabel}[1]{[#1]\hfill}
+\makeatother
+\setlength\parindent{2em}
+
+\makeatletter
+\newcommand\mysmall{\@setfontsize\mysmall{7}{9.5}}
+\newenvironment{tablehere}{\def\@captype{table}}{}
+\let\temp\footnote
+\renewcommand \footnote[1]{\temp{\zihao{-5}#1}}
+\makeatother
+
+\begin{document}
+
+\hyphenpenalty=50000
+\thispagestyle{plain}%
+\thispagestyle{empty}%
+\pagestyle{CjCheadings}
+
+\begin{table*}[!t]
+	\vspace {-13mm}
+	\begin{tabular}{p{168mm}}
+		\zihao{5-}
+		第??卷\quad 第?期 \hfill 计\quad 算\quad 机\quad 学\quad 报\hfill Vol. ??  No. ?\\
+		\zihao{5-}
+		2026年?月 \hfill CHINESE JOURNAL OF COMPUTERS \hfill ???. 2026\\
+		\hline\\[-4.5mm]
+		\hline
+	\end{tabular}
+
+	\centering
+	\vspace {11mm}
+	{\zihao{2} """ + title + r"""}
+	\vskip 5mm
+
+	{\zihao{3} """ + author + r"""}
+
+	\vspace {5mm}
+	\zihao{6}{（单位全名 部门全名, 市 邮政编码）}
+
+	\vskip 5mm
+	{\centering
+		\begin{tabular}{p{160mm}}
+			\zihao{5-}{
+				\setlength{\baselineskip}{16pt}\selectfont{
+					\noindent 摘\quad 要\quad """ + abstract_text + r"""
+					\par}}\\[2mm]
+
+			\zihao{5-}{\noindent
+				关键词 \quad """ + keywords + r"""
+			}\\[2mm]
+			\zihao{5-}{中图法分类号 TP \quad \quad \quad     DOI号}
+	\end{tabular}}
+
+	\vskip 7mm
+
+	\begin{center}
+		\zihao{3}{Title}\\
+		\vspace {5mm}
+		\zihao{5}{ NAME Name-Name}\\
+		\vspace {2mm}
+		\zihao{6}{$^{1)}$(Department, University, City ZipCode, China)}
+	\end{center}
+
+	\begin{tabular}{p{160mm}}
+		\zihao{5}{
+			\setlength{\baselineskip}{18pt}\selectfont{
+				{\bf Abstract}\quad Abstract content here.
+				\par}}\\
+
+		\setlength{\baselineskip}{18pt}\selectfont{
+			\zihao{5}{\noindent
+				\vspace {5mm}
+				{\bf Keywords}\quad keywords here
+				\par}}
+	\end{tabular}
+
+	\setlength{\tabcolsep}{2pt}
+	\begin{tabular}{p{0.05cm}p{16.15cm}}
+		\multicolumn{2}{l}{\rule[4mm]{40mm}{0.1mm}}\\[-3mm]
+		&
+		收稿日期：\quad \quad -\quad -\quad ；最终修改稿收到日期：\quad \quad -\quad -\quad .
+	\end{tabular}
+\end{table*}
+\clearpage
+
+% 正文开始
+\linespread{1.15}
+\zihao{5}
+\vskip 1mm
+
+""" + content + r"""
+
+\vspace {3mm}
+
+""" + refs_tex + r"""
+
+\end{document}"""
+
+    (output_dir / "main.tex").write_text(main_tex, encoding="utf-8")
+
+    if bib:
+        (output_dir / "references.bib").write_text(bib, encoding="utf-8")
+
+    write_readme(output_dir, engine_note="This project uses the CjC (计算机学报) template.")
+    zip_project(output_dir)
+    return output_dir
+
+
 def build_project(input_path: Path, output_dir: Path, template_name: str | None, skill_dir: Path) -> Path:
+    template_path = choose_template(skill_dir, template_name)
+
+    # Dispatch to directory-based template handlers
+    if is_seuthesis_template(template_path):
+        return build_seuthesis_project(input_path, output_dir, template_path)
+    if is_cjc_template(template_path):
+        return build_cjc_project(input_path, output_dir, template_path)
+
+    # Default: single .tex file with placeholder replacement
     markdown = read_text(input_path)
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "figures").mkdir(exist_ok=True)
@@ -536,7 +819,6 @@ def build_project(input_path: Path, output_dir: Path, template_name: str | None,
     refs_tex, bib = make_references(references_raw)
     values = {**metadata, **converted, "REFERENCES": refs_tex, "BIBITEMS": make_bibitems(references_raw)}
 
-    template_path = choose_template(skill_dir, template_name)
     template = template_path.read_text(encoding="utf-8")
     values = prepare_values_for_template(template, values)
     main_tex = apply_template(template, values)
@@ -554,7 +836,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Build a Chinese academic LaTeX project.")
     parser.add_argument("input", type=Path, help="Input Markdown or text file.")
     parser.add_argument("-o", "--output", type=Path, default=Path("latex_project"), help="Output project directory.")
-    parser.add_argument("-t", "--template", default=None, help="Template: chinese_article, thesis_section, research_report.")
+    parser.add_argument("-t", "--template", default=None, help="Template: chinese_article, seuthesis, cjc.")
     parser.add_argument("--skill-dir", type=Path, default=Path(__file__).resolve().parents[1], help="Skill root directory.")
     args = parser.parse_args()
 

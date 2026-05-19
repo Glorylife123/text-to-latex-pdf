@@ -13,7 +13,7 @@ Accept plain text, Markdown, paper paragraphs, section notes, tables, formula de
 
 ## Workflow
 
-1. Choose a template from `assets/templates/`.
+1. Choose a template from `assets/templates/`: `chinese_article.tex` (single-file), `seuthesis/` (东南大学硕士论文, multi-file), or `cjc/` (计算机学报, single-file with class).
 2. Convert or clean the user content into structured Markdown.
 3. Run `scripts/build_latex_project.py` to create a project directory with `main.tex`, `figures/`, optional `references.bib`, and `README_compile.md`.
 4. Run `scripts/validate_latex.py` on the project before compiling.
@@ -26,8 +26,8 @@ Accept plain text, Markdown, paper paragraphs, section notes, tables, formula de
 - Always use `assets/templates/user_template.tex` first when it contains meaningful content, even if another template is requested.
 - Treat user templates as strict template mode: preserve `documentclass`, preamble, margins, fonts, title style, figure/table style, and reference style unless compilation fails.
 - Copy any supporting files under `assets/templates/user_template_files/` into the generated LaTeX project when `user_template.tex` is selected.
-- Use `thesis_section.tex` for master's thesis subsections, thesis chapters, course thesis sections, and dissertation-style writing.
-- Use `research_report.tex` for course papers, research reports, surveys, mathematical modeling papers, weekly reports, and SAV literature reading reports.
+- Use the `seuthesis` template (东南大学硕士论文) for master's thesis subsections, thesis chapters, course thesis sections, and dissertation-style writing.
+- Use the `cjc` template (计算机学报) for course papers, research reports, surveys, mathematical modeling papers, and weekly reports.
 - Use `chinese_article.tex` for general Chinese academic articles and short papers.
 
 When a user template is used, fill existing placeholders or insert into existing structures. Do not force abstract or keyword blocks into a template that lacks those structures unless the user's input contains abstract or keywords. Repair the preamble only when compilation fails and only with the minimum necessary change.

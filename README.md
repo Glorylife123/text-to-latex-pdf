@@ -5,7 +5,7 @@
 ## 功能特性
 
 - **智能转换**：自动解析 Markdown 标题、摘要、关键词、正文、表格、公式、图片说明和参考文献
-- **多模板支持**：内置通用学术论文、毕业论文章节、研究报告三种模板，支持用户自定义模板
+- **多模板支持**：内置通用学术论文、东南大学硕士论文（SEUThesis）、计算机学报（CjC）三种模板，支持用户自定义模板
 - **自动编排**：生成完整的 LaTeX 项目结构，包括 `main.tex`、`references.bib`、`figures/` 目录等
 - **编译验证**：自动检测 LaTeX 环境并尝试编译 PDF，失败时生成错误摘要
 - **格式规范**：默认 XeLaTeX + ctexart，A4 纸张，2.5cm 页边距，1.5 倍行距，booktabs 三线表
@@ -18,8 +18,16 @@ text-to-latex-pdf/
 ├── assets/
 │   └── templates/
 │       ├── chinese_article.tex       # 通用中文学术论文模板
-│       ├── thesis_section.tex        # 毕业论文章节模板
-│       ├── research_report.tex       # 研究报告模板
+│       ├── seuthesis/                # 东南大学硕士论文模板（多文件结构）
+│       │   ├── main.tex
+│       │   ├── template/             # .cls, .bst, .cfg
+│       │   ├── chapters/             # abstract, chapter1-6, acknowledgement, appendix, resume
+│       │   ├── figures/              # 封面图片
+│       │   └── reference.bib
+│       ├── cjc/                      # 计算机学报模板
+│       │   ├── CjC_template_tex.tex
+│       │   ├── CjC.cls
+│       │   └── ...                   # 支持文件
 │       └── user_template.tex         # 用户自定义模板（留空则使用内置模板）
 ├── examples/
 │   ├── report_input.md               # 研究报告示例输入
@@ -59,7 +67,7 @@ python scripts/build_latex_project.py input.md -o output_dir -t chinese_article
 参数说明：
 - `input.md`：输入的 Markdown 或文本文件
 - `-o, --output`：输出目录（默认 `latex_project`）
-- `-t, --template`：模板选择，可选 `chinese_article`、`thesis_section`、`research_report`
+- `-t, --template`：模板选择，可选 `chinese_article`、`seuthesis`、`cjc`
 
 **验证项目：**
 
@@ -77,9 +85,9 @@ python scripts/compile_latex.py output_dir
 
 | 模板 | 适用场景 |
 |------|---------|
-| `chinese_article.tex` | 通用中文学术论文、短篇论文 |
-| `thesis_section.tex` | 硕士毕业论文、课程论文、学位论文 |
-| `research_report.tex` | 研究报告、课程作业、数学建模论文、周报 |
+| `chinese_article` | 通用中文学术论文、短篇论文 |
+| `seuthesis` | 东南大学硕士毕业论文、课程论文、学位论文 |
+| `cjc` | 计算机学报论文、研究报告、课程作业、数学建模论文 |
 
 ### 自定义模板
 
