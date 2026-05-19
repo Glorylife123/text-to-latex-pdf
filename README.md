@@ -1,6 +1,6 @@
 # Text to LaTeX PDF
 
-一个 Claude Code Skill，将纯文本、Markdown、学术笔记、论文段落、研究报告等转换为中文学术 LaTeX 项目，并在可用时编译生成 PDF。
+一个 Claude Code / Codex Skill，将纯文本、Markdown、学术笔记、论文段落、研究报告等转换为中文学术 LaTeX 项目，并在可用时编译生成 PDF。同时支持 Claude Code 和 OpenAI Codex。
 
 ## 功能特性
 
@@ -46,9 +46,9 @@ text-to-latex-pdf/
 
 ## 使用方式
 
-### 作为 Claude Code Skill 使用
+### 作为 Skill 使用（Claude Code / Codex）
 
-在 Claude Code 中直接描述需求即可触发：
+在 Claude Code 或 OpenAI Codex 中直接描述需求即可触发：
 
 ```
 将以下文本转换为 LaTeX 项目...
