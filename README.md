@@ -1,6 +1,6 @@
 # Text to LaTeX PDF
 
-一个 Claude Code Skill，将纯文本、Markdown、学术笔记、论文段落、研究报告、SAV 文献阅读报告等转换为中文学术 LaTeX 项目，并在可用时编译生成 PDF。
+一个 Claude Code Skill，将纯文本、Markdown、学术笔记、论文段落、研究报告等转换为中文学术 LaTeX 项目，并在可用时编译生成 PDF。
 
 ## 功能特性
 
@@ -23,7 +23,6 @@ text-to-latex-pdf/
 │       └── user_template.tex         # 用户自定义模板（留空则使用内置模板）
 ├── examples/
 │   ├── report_input.md               # 研究报告示例输入
-│   ├── sav_literature_review_input.md # SAV 文献阅读报告示例
 │   ├── thesis_section_input.md       # 论文章节示例输入
 │   └── user_template_input.md        # 自定义模板示例输入
 ├── references/
@@ -80,7 +79,7 @@ python scripts/compile_latex.py output_dir
 |------|---------|
 | `chinese_article.tex` | 通用中文学术论文、短篇论文 |
 | `thesis_section.tex` | 硕士毕业论文、课程论文、学位论文 |
-| `research_report.tex` | 研究报告、课程作业、数学建模论文、周报、SAV 文献阅读报告 |
+| `research_report.tex` | 研究报告、课程作业、数学建模论文、周报 |
 
 ### 自定义模板
 
@@ -90,9 +89,29 @@ python scripts/compile_latex.py output_dir
 
 详见 `references/template_placeholders.md`。
 
-## 输入格式
+## 输入方式
 
-支持的 Markdown 约定：
+支持两种输入方式：
+
+### 1. 直接提供文本
+
+将已有的笔记、文稿、Markdown 文件等直接交给 Skill，它会自动解析并转换为 LaTeX 项目。
+
+### 2. 提供提示词，由 AI 生成内容
+
+不需要准备完整的文本，只需描述你的需求，AI 会先根据提示词撰写内容，再执行后续的 LaTeX 转换和编译流程。例如：
+
+```
+帮我写一篇关于深度学习在医学影像中应用的研究报告，要求包含摘要、三个主要章节、一个数据对比表格和参考文献，生成 PDF。
+```
+
+```
+写一个毕业论文的"相关理论与技术"章节，内容涵盖卷积神经网络和 Transformer，约 3000 字。
+```
+
+### Markdown 约定
+
+如果直接提供文本，建议遵循以下结构以便自动识别：
 
 ```markdown
 # 文档标题
